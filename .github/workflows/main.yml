@@ -12,11 +12,12 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build Lela Android APK
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
-      - name: Checkout source
+      - name: Checkout project
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -31,14 +32,15 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Install Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install SDK packages and accept licenses
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0"
-          sdkmanager --list_installed
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 
       - name: Check project files
         run: |
@@ -47,28 +49,28 @@ jobs:
           test -f angular.json
           test -f capacitor.config.ts
 
-      - name: Install npm dependencies
+      - name: Install Angular dependencies
         run: npm ci
 
       - name: Build Angular application
         run: npx ng build --configuration production
 
-      - name: Check Android project
+      - name: Check Android platform
         run: |
           if [ ! -d android ]; then
             npx cap add android
           fi
 
-      - name: Sync Capacitor
+      - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Build debug APK
+      - name: Build Android APK
         working-directory: android
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Lela-Speak-Assist-APK
